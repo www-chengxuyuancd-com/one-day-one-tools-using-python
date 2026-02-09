@@ -18,7 +18,7 @@ name: Build & Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -46,8 +46,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -57,11 +57,10 @@ jobs:
       - name: Build with Nuitka (macOS)
         if: matrix.platform == 'macos'
         shell: bash
-        env:
-          NUITKA_ASSUME_YES: "1"
         run: |
           python -m nuitka \
             --onefile \
+            --assume-yes-for-downloads \
             --enable-plugin=pyside6 \
             --include-package=common \
             --macos-app-icon=0001-extract-images-from-excel/icon.icns \
@@ -71,11 +70,10 @@ jobs:
       - name: Build with Nuitka (Windows)
         if: matrix.platform == 'windows'
         shell: bash
-        env:
-          NUITKA_ASSUME_YES: "1"
         run: |
           python -m nuitka \
             --onefile \
+            --assume-yes-for-downloads \
             --enable-plugin=pyside6 \
             --include-package=common \
             --windows-icon-from-ico=0001-extract-images-from-excel/icon.ico \
