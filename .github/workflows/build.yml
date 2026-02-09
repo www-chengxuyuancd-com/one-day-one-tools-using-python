@@ -52,11 +52,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install nuitka ordered-set
+          pip install nuitka ordered-set zstandard
 
       - name: Build with Nuitka (macOS)
         if: matrix.platform == 'macos'
         shell: bash
+        env:
+          NUITKA_ASSUME_YES: "1"
         run: |
           python -m nuitka \
             --onefile \
@@ -69,6 +71,8 @@ jobs:
       - name: Build with Nuitka (Windows)
         if: matrix.platform == 'windows'
         shell: bash
+        env:
+          NUITKA_ASSUME_YES: "1"
         run: |
           python -m nuitka \
             --onefile \
