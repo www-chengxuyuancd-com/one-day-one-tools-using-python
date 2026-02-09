@@ -1,0 +1,118 @@
+# ============================================================
+#  Nuitka 跨平台打包 & 发布
+#
+#  触发方式：
+#    1. 推送 v* 标签时自动构建并创建 Release
+#    2. 手动触发（workflow_dispatch）仅构建不发布
+#
+#  省钱策略：
+#    - fail-fast: true（默认），一个失败就停掉全部
+#    - pip 缓存加速，减少 job 时间
+#    - 只构建需要的平台（macOS + Windows）
+#    - 小 job 合并，减少 job 数量
+#    - 公共仓库完全免费
+# ============================================================
+
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos
+            ext: ""
+          - os: windows-latest
+            platform: windows
+            ext: ".exe"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install nuitka ordered-set
+
+      - name: Build with Nuitka (macOS)
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          python -m nuitka \
+            --onefile \
+            --enable-plugin=pyside6 \
+            --include-package=common \
+            --macos-app-icon=0001-extract-images-from-excel/icon.icns \
+            --output-dir=dist \
+            0001-extract-images-from-excel/main.py
+
+      - name: Build with Nuitka (Windows)
+        if: matrix.platform == 'windows'
+        shell: bash
+        run: |
+          python -m nuitka \
+            --onefile \
+            --enable-plugin=pyside6 \
+            --include-package=common \
+            --windows-icon-from-ico=0001-extract-images-from-excel/icon.ico \
+            --output-dir=dist \
+            0001-extract-images-from-excel/main.py
+
+      # Nuitka --onefile 输出: main / main.exe
+      - name: Rename artifact
+        shell: bash
+        run: |
+          cd dist
+          if [ -f "main.exe" ]; then
+            mv main.exe "excel-image-extractor-${{ matrix.platform }}.exe"
+          elif [ -f "main.bin" ]; then
+            mv main.bin "excel-image-extractor-${{ matrix.platform }}"
+          elif [ -f "main" ]; then
+            mv main "excel-image-extractor-${{ matrix.platform }}"
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: excel-image-extractor-${{ matrix.platform }}
+          path: dist/excel-image-extractor-*
+
+  # ----------------------------------------------------------
+  #  Release（仅在推送 tag 时触发）
+  # ----------------------------------------------------------
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
