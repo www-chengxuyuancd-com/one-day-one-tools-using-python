@@ -69,11 +69,22 @@ class ExcelImageExtractor(BaseApp):
     """Excel 图片提取工具 - PySide6 GUI"""
 
     APP_NAME = "Excel 图片提取工具"
-    APP_VERSION = "1.1"
+    APP_VERSION = "1.2"
     WINDOW_WIDTH = 920
-    WINDOW_HEIGHT = 780
+    WINDOW_HEIGHT = 820
 
     IMAGE_FORMATS = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif']
+
+    # 推广信息
+    PROMO_TEXT = (
+        "免费获取最新版本，请关注公众号「包哥软件人生」"
+        "或添加微信 laifeizhouma"
+    )
+    PROMO_IMAGES = [
+        ("公众号: 包哥软件人生", "images/sales/gongzhonghao.png"),
+        ("微信: laifeizhouma", "images/sales/baozige.png"),
+    ]
+    PROMO_IMAGE_SIZE = 150
 
     def __init__(self):
         self.wb = None

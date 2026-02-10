@@ -34,7 +34,7 @@ jobs:
             platform: macos
             ext: ""
           - os: windows-latest
-            platform: windows
+            platform: windows-x64
             ext: ".exe"
 
     runs-on: ${{ matrix.os }}
@@ -63,12 +63,13 @@ jobs:
             --assume-yes-for-downloads \
             --enable-plugin=pyside6 \
             --include-package=common \
+            --include-data-dir=0001-extract-images-from-excel/images=images \
             --macos-app-icon=0001-extract-images-from-excel/icon.icns \
             --output-dir=dist \
             0001-extract-images-from-excel/main.py
 
       - name: Build with Nuitka (Windows)
-        if: matrix.platform == 'windows'
+        if: startsWith(matrix.platform, 'windows')
         shell: bash
         run: |
           python -m nuitka \
@@ -76,6 +77,7 @@ jobs:
             --assume-yes-for-downloads \
             --enable-plugin=pyside6 \
             --include-package=common \
+            --include-data-dir=0001-extract-images-from-excel/images=images \
             --windows-icon-from-ico=0001-extract-images-from-excel/icon.ico \
             --output-dir=dist \
             0001-extract-images-from-excel/main.py

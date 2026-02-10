@@ -16,14 +16,15 @@
 """
 
 import sys
+from pathlib import Path
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QGroupBox, QPushButton, QProgressBar, QTextEdit, QLabel,
-    QMessageBox, QSizePolicy,
+    QMessageBox, QSizePolicy, QDialog, QScrollArea,
 )
 from PySide6.QtCore import Qt, QThread, Signal, Slot
-from PySide6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor
+from PySide6.QtGui import QFont, QColor, QTextCharFormat, QTextCursor, QPixmap
 
 
 # ================================================================
@@ -86,6 +87,12 @@ class BaseApp(QMainWindow):
     APP_VERSION = "1.0"
     WINDOW_WIDTH = 880
     WINDOW_HEIGHT = 720
+
+    # --- 推广信息配置（子类可覆盖）---
+    # 设置为 None 则不显示推广栏
+    PROMO_TEXT = None          # 如: "关注公众号获取最新版本"
+    PROMO_IMAGES = None        # 如: [("公众号", "path/to/qr1.png"), ("微信", "path/to/qr2.png")]
+    PROMO_IMAGE_SIZE = 120     # 二维码图片显示尺寸
 
     def __init__(self):
         # 确保只有一个 QApplication 实例
@@ -211,6 +218,10 @@ class BaseApp(QMainWindow):
         log_layout.addWidget(self.log_text)
         main_layout.addWidget(log_group, stretch=1)
 
+        # 5. 推广信息栏（如果子类配置了）
+        if self.PROMO_TEXT or self.PROMO_IMAGES:
+            self._build_promo_bar(main_layout)
+
     @staticmethod
     def _get_mono_font():
         """获取当前平台合适的等宽字体"""
@@ -220,6 +231,132 @@ class BaseApp(QMainWindow):
             return QFont("Consolas", 9)
         else:
             return QFont("Monospace", 10)
+
+    def _build_promo_bar(self, parent_layout):
+        """构建底部推广信息栏"""
+        promo_frame = QWidget()
+        promo_frame.setStyleSheet("""
+            QWidget {
+                background-color: #F5F5F5;
+                border: 1px solid #E0E0E0;
+                border-radius: 6px;
+            }
+        """)
+        promo_layout = QHBoxLayout(promo_frame)
+        promo_layout.setContentsMargins(12, 8, 12, 8)
+        promo_layout.setSpacing(12)
+
+        # 文字
+        if self.PROMO_TEXT:
+            text_label = QLabel(self.PROMO_TEXT)
+            text_label.setStyleSheet(
+                "color: #555; font-size: 12px; border: none; background: none;"
+            )
+            text_label.setWordWrap(True)
+            promo_layout.addWidget(text_label, stretch=1)
+
+        # 查看详情按钮
+        if self.PROMO_IMAGES:
+            detail_btn = QPushButton("查看详情")
+            detail_btn.setCursor(Qt.PointingHandCursor)
+            detail_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #1976D2; color: white;
+                    border: none; padding: 6px 18px; border-radius: 4px;
+                    font-size: 12px;
+                }
+                QPushButton:hover { background-color: #1565C0; }
+            """)
+            detail_btn.clicked.connect(self._show_promo_dialog)
+            promo_layout.addWidget(detail_btn)
+
+        parent_layout.addWidget(promo_frame)
+
+    def _show_promo_dialog(self):
+        """弹出推广详情弹窗（显示二维码图片）"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("联系我们")
+        dialog.setMinimumWidth(400)
+
+        dlg_layout = QVBoxLayout(dialog)
+        dlg_layout.setSpacing(16)
+        dlg_layout.setContentsMargins(20, 20, 20, 20)
+
+        if self.PROMO_TEXT:
+            text_lbl = QLabel(self.PROMO_TEXT)
+            text_lbl.setStyleSheet("font-size: 14px; color: #333;")
+            text_lbl.setWordWrap(True)
+            text_lbl.setAlignment(Qt.AlignCenter)
+            dlg_layout.addWidget(text_lbl)
+
+        # 图片区域
+        if self.PROMO_IMAGES:
+            img_row = QHBoxLayout()
+            img_row.setSpacing(24)
+            img_row.addStretch()
+
+            for label_text, img_path in self.PROMO_IMAGES:
+                col = QVBoxLayout()
+                col.setSpacing(6)
+
+                # 图片
+                img_label = QLabel()
+                img_label.setAlignment(Qt.AlignCenter)
+                pixmap = self._load_promo_image(img_path)
+                if pixmap and not pixmap.isNull():
+                    scaled = pixmap.scaled(
+                        self.PROMO_IMAGE_SIZE, self.PROMO_IMAGE_SIZE,
+                        Qt.KeepAspectRatio, Qt.SmoothTransformation
+                    )
+                    img_label.setPixmap(scaled)
+                else:
+                    img_label.setText(f"[{label_text}]")
+                    img_label.setStyleSheet(
+                        "color: #999; font-size: 11px; "
+                        f"min-width: {self.PROMO_IMAGE_SIZE}px; "
+                        f"min-height: {self.PROMO_IMAGE_SIZE}px; "
+                        "border: 1px dashed #ccc; border-radius: 4px;"
+                    )
+                    img_label.setAlignment(Qt.AlignCenter)
+
+                col.addWidget(img_label)
+
+                # 标签
+                name_lbl = QLabel(label_text)
+                name_lbl.setAlignment(Qt.AlignCenter)
+                name_lbl.setStyleSheet("font-size: 12px; color: #666;")
+                col.addWidget(name_lbl)
+
+                img_row.addLayout(col)
+
+            img_row.addStretch()
+            dlg_layout.addLayout(img_row)
+
+        # 关闭按钮
+        close_btn = QPushButton("关闭")
+        close_btn.setCursor(Qt.PointingHandCursor)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                padding: 6px 30px; border-radius: 4px;
+                border: 1px solid #ccc; font-size: 12px;
+            }
+            QPushButton:hover { background-color: #f0f0f0; }
+        """)
+        close_btn.clicked.connect(dialog.accept)
+        dlg_layout.addWidget(close_btn, alignment=Qt.AlignCenter)
+
+        dialog.exec()
+
+    def _load_promo_image(self, img_path):
+        """加载推广图片，支持相对路径（相对于程序所在目录）"""
+        p = Path(img_path)
+        if not p.is_absolute():
+            # 相对于 main.py 所在目录
+            base = Path(sys.argv[0]).resolve().parent if sys.argv else Path.cwd()
+            p = base / img_path
+        if p.exists():
+            return QPixmap(str(p))
+        return None
 
     # ================================================================
     #  子类接口（重写这些方法）
