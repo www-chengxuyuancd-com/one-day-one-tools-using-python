@@ -65,6 +65,8 @@ jobs:
             --include-package=common \
             --include-data-dir=0001-extract-images-from-excel/images=images \
             --macos-app-icon=0001-extract-images-from-excel/icon.icns \
+            --macos-app-name="Excel Image Extractor" \
+            --onefile-tempdir-spec="{CACHE_DIR}/ExcelImageExtractor" \
             --output-dir=dist \
             0001-extract-images-from-excel/main.py
 
@@ -79,6 +81,13 @@ jobs:
             --include-package=common \
             --include-data-dir=0001-extract-images-from-excel/images=images \
             --windows-icon-from-ico=0001-extract-images-from-excel/icon.ico \
+            --windows-console-mode=disable \
+            --windows-company-name="BaoGe Software" \
+            --windows-product-name="Excel Image Extractor" \
+            --windows-file-version=1.2.0.0 \
+            --windows-product-version=1.2.0.0 \
+            --windows-file-description="Excel Image Extractor - Extract images from Excel files" \
+            --onefile-tempdir-spec="{CACHE_DIR}/ExcelImageExtractor" \
             --output-dir=dist \
             0001-extract-images-from-excel/main.py
 

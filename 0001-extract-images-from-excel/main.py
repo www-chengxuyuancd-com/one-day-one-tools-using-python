@@ -75,6 +75,9 @@ class ExcelImageExtractor(BaseApp):
 
     IMAGE_FORMATS = ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif']
 
+    # 资源文件基准路径（以当前 .py 文件所在目录为基准查找图片等资源）
+    RESOURCE_BASE_FILE = __file__
+
     # 推广信息
     PROMO_TEXT = (
         "免费获取最新版本，请关注公众号「包哥软件人生」"

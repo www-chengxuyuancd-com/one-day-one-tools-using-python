@@ -1,5 +1,6 @@
 """通用工具函数"""
 
+import os
 import re
 import sys
 import platform
@@ -11,6 +12,43 @@ def get_exe_dir():
     if getattr(sys, 'frozen', False):
         return Path(sys.executable).parent
     return Path(__file__).resolve().parent.parent
+
+
+def get_app_dir():
+    """
+    获取应用程序主脚本所在目录
+
+    兼容多种运行模式：
+    - 源码直接运行: main.py 所在目录
+    - Nuitka onefile: 临时解压目录（数据文件在此）
+    - Nuitka standalone: dist 文件夹
+    - PyInstaller onefile: sys._MEIPASS
+    """
+    # PyInstaller onefile
+    if hasattr(sys, '_MEIPASS'):
+        return Path(sys._MEIPASS)
+
+    # Nuitka onefile: __compiled__ 存在时，
+    # 数据文件解压到 exe 同级目录或 sys.argv[0] 同级
+    if "__compiled__" in dir():
+        return Path(sys.argv[0]).resolve().parent
+
+    # Nuitka standalone 或普通 frozen
+    if getattr(sys, 'frozen', False):
+        return Path(sys.executable).resolve().parent
+
+    # 源码运行: 返回 main.py 所在目录
+    return Path(sys.argv[0]).resolve().parent if sys.argv else Path.cwd()
+
+
+def get_resource_path(relative_path):
+    """
+    获取资源文件的绝对路径
+
+    :param relative_path: 相对于主脚本目录的路径，如 "images/sales/qr.png"
+    :return: Path 对象
+    """
+    return get_app_dir() / relative_path
 
 
 def get_safe_filename(name, max_length=100):

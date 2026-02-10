@@ -348,14 +348,38 @@ class BaseApp(QMainWindow):
         dialog.exec()
 
     def _load_promo_image(self, img_path):
-        """加载推广图片，支持相对路径（相对于程序所在目录）"""
+        """
+        加载推广图片，支持相对路径。
+
+        搜索顺序:
+        1. 绝对路径直接使用
+        2. 相对于 RESOURCE_BASE_FILE 所在目录（子类定义）
+        3. 相对于 get_app_dir()
+        4. 相对于 sys.argv[0] 所在目录
+        """
+        from common.utils import get_app_dir
+
         p = Path(img_path)
-        if not p.is_absolute():
-            # 相对于 main.py 所在目录
-            base = Path(sys.argv[0]).resolve().parent if sys.argv else Path.cwd()
-            p = base / img_path
-        if p.exists():
+        if p.is_absolute() and p.exists():
             return QPixmap(str(p))
+
+        # 候选基准目录
+        candidates = []
+
+        # 子类可以设置 RESOURCE_BASE_FILE = __file__，
+        # 这样就以子类 .py 文件所在目录为基准
+        base_file = getattr(self, 'RESOURCE_BASE_FILE', None)
+        if base_file:
+            candidates.append(Path(base_file).resolve().parent)
+
+        candidates.append(get_app_dir())
+        candidates.append(Path(sys.argv[0]).resolve().parent if sys.argv else Path.cwd())
+
+        for base in candidates:
+            full = base / img_path
+            if full.exists():
+                return QPixmap(str(full))
+
         return None
 
     # ================================================================
